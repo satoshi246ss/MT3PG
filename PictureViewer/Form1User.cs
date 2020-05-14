@@ -617,8 +617,44 @@ namespace MT3
             sett.ThresholdMinArea = 0.25;// 最小エリア閾値（最大値ｘ_threshold_min_area)
             sett.UdpPortRecieve = 24441; //Broadcast1
             sett.UdpPortSend    = 24433;
-            sett.SaveDir = @"D:\img_data\";
-            sett.SaveDrive = "D:";
+            sett.SaveDir = @"C:\img_data\";
+            sett.SaveDrive = "C:";
+            sett.AviMaxFrame = 500;
+            SettingsSave(sett);
+
+            // MT2 Echelle ver 2
+            sett.Text = "Echelle PGR GH3 U3-23S6M-C";
+            sett.ID = 11;             //ID 全カメラの中のID　保存ファルイの識別にも使用。FishEye:0  MT3Wide:4  MT3Fine:8  MT3SF:12 等々
+            sett.NoCapDev = 11;
+            sett.CameraType = "PGR"; //カメラタイプ： IDS Basler AVT IS analog
+            sett.CameraID = 2;       //カメラタイプ毎のID
+            //sett.CameraColor = Camera_Color.mono12packed;    // 0:mono(mono8)  1:color 2:mono12packed
+            sett.CameraColor = Camera_Color.mono;              // 0:mono(mono8)  1:color 2:mono12packed
+            sett.CameraInterface = Camera_Interface.USB3;
+            sett.CamPlatform = Platform.MT2;
+            sett.Flipmode = OpenCvSharp.FlipMode.XY;
+            sett.IP_GIGE_Camera = "192.168.1.152"; //GIGE Camera only.
+            sett.Width  = 1920;
+            sett.Height = 1200;
+            sett.FocalLength = 50;      //[mm]
+            sett.Ccdpx = 0.00586; //[mm] CCD:IMX174
+            sett.Ccdpy = 0.00586; //[mm]
+            sett.Xoa = 960;// 320;
+            sett.Yoa = 600;// 240;            
+            sett.Roa = 1.0 / (Math.Atan(sett.Ccdpx / sett.FocalLength) * 180 / Math.PI); //半径1deg    // 255x192:ace640の縦視野
+            sett.Theta = 0;
+            sett.Framerate = 50.0; //[fps]
+            sett.FifoMaxFrame = 4;
+            sett.PreSaveNum = 0;
+            sett.Exposure = 33; //[ms]
+            sett.Gain = 30; // 0-30  要検討
+            sett.UseDetect = false;
+            sett.ThresholdBlob = 128;     // 検出閾値（０－２５５）
+            sett.ThresholdMinArea = 0.25;// 最小エリア閾値（最大値ｘ_threshold_min_area)
+            sett.UdpPortRecieve = 24441; //Broadcast1
+            sett.UdpPortSend = 24433;
+            sett.SaveDir = @"C:\img_data\";
+            sett.SaveDrive = "C:";
             sett.AviMaxFrame = 500;
             SettingsSave(sett);
 
@@ -682,6 +718,34 @@ namespace MT3
             sett.UdpPortSend = 24451;
             sett.SaveDir = @"D:\img_data\";
             sett.SaveDrive = "D:";
+            SettingsSave(sett);
+
+            // IDS
+            sett.Text = "IDS UI-5240CP-NIR";
+            sett.ID = 3;             //ID 全カメラの中のID　保存ファルイの識別にも使用。FishEye:0  MT3Wide:4  MT3Fine:8  MT3SF:12 等々
+            sett.NoCapDev = 3;
+            sett.CameraType = "IDS"; //カメラタイプ： IDS Basler AVT IS analog
+            sett.CameraID = 1;       //カメラタイプ毎のID
+            sett.CameraColor = Camera_Color.mono;    // 0:mono(mono8)  1:color 2:mono12packed
+            sett.CameraInterface = Camera_Interface.GIGE;
+            sett.IP_GIGE_Camera = "192.168.2.1"; //GIGE Camera only.
+            sett.Width = 1280;
+            sett.Height = 1024;
+            sett.FocalLength = 35;      //[mm]
+            sett.Ccdpx = 0.0054; //[mm]
+            sett.Ccdpy = 0.0054; //[mm]
+            sett.PixelClock = 71; //[MHz] 5-43MHz  UI-1540
+            sett.Framerate = 50.02; //[fps]
+            sett.FifoMaxFrame = 32;
+            sett.Exposure = 19.973; //[ms]
+            sett.Gain = 30; // 0-30  要検討
+            sett.UseDetect = false;
+            sett.ThresholdBlob = 128;     // 検出閾値（０－２５５）
+            sett.ThresholdMinArea = 0.25;// 最小エリア閾値（最大値ｘ_threshold_min_area)
+            sett.UdpPortRecieve = 24410; //Broadcast0
+            sett.UdpPortSend = 24429;
+            sett.SaveDir = @"C:\img_data\";
+            sett.SaveDrive = "C:";
             SettingsSave(sett);
 
             // IDS
