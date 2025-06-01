@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using OpenCvSharp;
-using OpenCvSharp.Blob;
+using uEye;
+//using OpenCvSharp.Blob;
 
 namespace MT3
 {
     class position_mesure
     {
-        CvPoint2D64f pos_pre = new CvPoint2D64f(-1, -1);
+        Point2f pos_pre = new Point2f(-1, -1);
         double distance_pre = 1000;
         double dist_alpha = 0.5;
         double distance0;　//距離定数　評価値が1/eになる距離[pixel]
@@ -24,30 +25,37 @@ namespace MT3
         /// <remarks>
         /// 最適blobの選定（areaの大きさと前回からの距離）
         /// </remarks>
-        public int mesure(CvBlobs blobs)
+        //public int mesure(CvBlobs blobs)
+        public int mesure(KeyPoint[] blobs)
         {
-            if (blobs.Count == 0)
+            if (blobs.Length == 0) return 0;
+            
+            Point2f pos_ans = new Point2f(-1, -1);
+            //CvBlob maxBlob = blobs.LargestBlob();
+            KeyPoint maxBlob = blobs[0] ; 
+            foreach (var keyPoint in blobs )
             {
-                return 0;
+                if(maxBlob.Size < keyPoint.Size)
+                {
+                    maxBlob = keyPoint;
+                }
             }
-            CvPoint2D64f pos_ans = new CvPoint2D64f(-1, -1);
-            CvBlob maxBlob = blobs.LargestBlob();
-            int max_label = blobs.GreaterBlob().Label;
-            if (blobs.Count == 0) return 0;
-            pos_ans = maxBlob.Centroid;
+            //int max_label = blobs.GreaterBlob().Label;
+            //if (blobs.Length == 0 ) return 0;
+            pos_ans = maxBlob.Pt;// .Centroid;
             distance0 = Cal_distance_const(distance_pre);
-            if (blobs.Count > 1)
+            if (blobs.Length > 1)
             {
                 // 最適blobの選定
                 double eval, eval_max = 0;
                 foreach (var item in blobs)
                 {
-                    eval = position_mesure.Cal_Evaluate(item.Value.Centroid, item.Value.Area, pos_pre, distance0);
+                    eval = position_mesure.Cal_Evaluate(item.Pt , item.Size , pos_pre, distance0);
                     if (eval > eval_max)
                     {
                         eval_max = eval;
-                        max_label = item.Key;
-                        pos_ans = item.Value.Centroid;
+                        //max_label = item.Key;
+                        pos_ans = item.Pt; // Value.Centroid;
 
                         ///Console.WriteLine("{0} | Centroid:{1} Area:{2} eval:{3}", item.Key, item.Value.Centroid, item.Value.Area, eval);
                         //w.WriteLine("{0} {1} {2} {3} {4}", dis, dv, i, item.Key, item.Value.Area);
@@ -66,7 +74,7 @@ namespace MT3
                 distance_pre = dis;
             }
             pos_pre = pos_ans;
-            return max_label;
+            return 1; // max_label;
         }
 
         /// <summary>
@@ -76,15 +84,25 @@ namespace MT3
         /// <param name="maxval">ブロブの面積</param>
         /// <param name="pos_pre">前回の目標位置</param>
         /// <param name="distance0">距離定数</param>
-        public static double Cal_Evaluate(CvPoint2D64f pos, double maxval, CvPoint2D64f pos_pre, double distance0)
+        public static double Cal_Evaluate(Point2d pos, double maxval, Point2d pos_pre, double distance0)
         {
             double distance = Cal_distance(pos, pos_pre);
             double eval = maxval * Math.Exp(-distance / distance0);
             return eval;
         }
-        public static double Cal_distance(CvPoint2D64f pos1, CvPoint2D64f pos2)
+        public static double Cal_Evaluate(Point2f pos, double maxval, Point2f pos_pre, double distance0)
+        {
+            double distance = Cal_distance(pos, pos_pre);
+            double eval = maxval * Math.Exp(-distance / distance0);
+            return eval;
+        }
+        public static double Cal_distance(Point2d pos1, Point2d pos2)
         {
             return Math.Sqrt(((pos1.X - pos2.X) * (pos1.X - pos2.X) + (pos1.Y - pos2.Y) * (pos1.Y - pos2.Y)));
+        }
+        public static float Cal_distance(Point2f pos1, Point2f pos2)
+        {
+            return (float)Math.Sqrt(((pos1.X - pos2.X) * (pos1.X - pos2.X) + (pos1.Y - pos2.Y) * (pos1.Y - pos2.Y)));
         }
         /// <summary>
         /// 評価関数用距離定数算出

@@ -6,7 +6,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using OpenCvSharp.Blob;
+//using OpenCvSharp.Blob;
 
 
 namespace MT3
@@ -14,8 +14,8 @@ namespace MT3
     partial class Form1 //AviTest
     {
         private BackgroundWorker AviTestworker;
-        private CvCapture capture;
-        IplImage AviTest_image;
+        private VideoCapture capture;
+        Mat AviTest_image;
         double AviTest_fps = 4;
         //string fn = @"D:\image_data\20151018\20151018_175329_491_10.avi";
         //string AviTest_fn = @"20151018_224542_615_10.avi";
@@ -28,7 +28,7 @@ namespace MT3
             AviTestworker.DoWork += new DoWorkEventHandler(AviTestworker_DoWork);
             AviTestworker.ProgressChanged += new ProgressChangedEventHandler(worker_ProgressChanged);
 
-            //capture = new CvCapture(AviTest_fn);
+            //capture = new VideoCapture(AviTest_fn);
             //Cv.NamedWindow("AviTest_window");
             //Cv.ShowImage("window", img);
             //Cv2.ImShow("dst", imgMatches); // for mat
@@ -43,10 +43,10 @@ namespace MT3
         {
             appSettings.TestMode = true;
             BackgroundWorker bw = (BackgroundWorker)sender;
-            using (CvCapture capture = new CvCapture(appSettings.TestFname))
+            using (VideoCapture capture = new VideoCapture(appSettings.TestFname))
             {
                 int interval = (int)(1000 / AviTest_fps);
-                while ((AviTest_image = capture.QueryFrame()) != null)
+                while ( capture.Read(AviTest_image) )
                 {
                     if (bw.CancellationPending)
                     {
@@ -67,11 +67,11 @@ namespace MT3
             appSettings.TestMode = false;
         }
 
-        public void image_data_write(ref IplImage img, int x, int y, int val)
+        public void image_data_write(ref Mat img, int x, int y, int val) // 遅い
         {
             if (x >= 0 && x < img.Width && y >= 0 && y < img.Height)
             {
-                Cv.Set2D(img, y, x, val);
+                img.Set( y, x, val );
             }
         }
 

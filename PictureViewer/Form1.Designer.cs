@@ -96,9 +96,9 @@
             tableLayoutPanel1.RowCount = 4;
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 90.08108F));
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 9.918927F));
-            tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 59F));
+            tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 86F));
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            tableLayoutPanel1.Size = new System.Drawing.Size(646, 619);
+            tableLayoutPanel1.Size = new System.Drawing.Size(645, 651);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // pictureBox1
@@ -108,7 +108,7 @@
             this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox1.Location = new System.Drawing.Point(3, 3);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(640, 480);
+            this.pictureBox1.Size = new System.Drawing.Size(639, 484);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
@@ -135,9 +135,9 @@
             this.flowLayoutPanel1.Controls.Add(this.label_ID);
             this.flowLayoutPanel1.Controls.Add(this.label_X2Y2);
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 489);
+            this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 493);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(640, 47);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(639, 48);
             this.flowLayoutPanel1.TabIndex = 2;
             this.flowLayoutPanel1.Paint += new System.Windows.Forms.PaintEventHandler(this.flowLayoutPanel1_Paint);
             // 
@@ -190,7 +190,7 @@
             this.buttonSave.Font = new System.Drawing.Font("MS UI Gothic", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.buttonSave.Location = new System.Drawing.Point(229, 3);
             this.buttonSave.Name = "buttonSave";
-            this.buttonSave.Size = new System.Drawing.Size(62, 23);
+            this.buttonSave.Size = new System.Drawing.Size(89, 27);
             this.buttonSave.TabIndex = 5;
             this.buttonSave.Text = "SaveStart";
             this.buttonSave.UseVisualStyleBackColor = true;
@@ -200,9 +200,9 @@
             // 
             this.ButtonSaveEnd.AutoSize = true;
             this.ButtonSaveEnd.Font = new System.Drawing.Font("MS UI Gothic", 8F);
-            this.ButtonSaveEnd.Location = new System.Drawing.Point(297, 3);
+            this.ButtonSaveEnd.Location = new System.Drawing.Point(324, 3);
             this.ButtonSaveEnd.Name = "ButtonSaveEnd";
-            this.ButtonSaveEnd.Size = new System.Drawing.Size(55, 23);
+            this.ButtonSaveEnd.Size = new System.Drawing.Size(76, 26);
             this.ButtonSaveEnd.TabIndex = 2;
             this.ButtonSaveEnd.Text = "SaveEnd";
             this.ButtonSaveEnd.UseVisualStyleBackColor = true;
@@ -210,7 +210,7 @@
             // 
             // buttonMakeSettings
             // 
-            this.buttonMakeSettings.Location = new System.Drawing.Point(358, 3);
+            this.buttonMakeSettings.Location = new System.Drawing.Point(406, 3);
             this.buttonMakeSettings.Name = "buttonMakeSettings";
             this.buttonMakeSettings.Size = new System.Drawing.Size(57, 23);
             this.buttonMakeSettings.TabIndex = 6;
@@ -221,7 +221,7 @@
             // buttonMove
             // 
             this.buttonMove.AutoSize = true;
-            this.buttonMove.Location = new System.Drawing.Point(421, 3);
+            this.buttonMove.Location = new System.Drawing.Point(469, 3);
             this.buttonMove.Name = "buttonMove";
             this.buttonMove.Size = new System.Drawing.Size(42, 23);
             this.buttonMove.TabIndex = 14;
@@ -231,7 +231,7 @@
             // 
             // numericUpDownStarMin
             // 
-            this.numericUpDownStarMin.Location = new System.Drawing.Point(469, 3);
+            this.numericUpDownStarMin.Location = new System.Drawing.Point(517, 3);
             this.numericUpDownStarMin.Maximum = new decimal(new int[] {
             98,
             0,
@@ -248,7 +248,7 @@
             // 
             // numericUpDownStarCount
             // 
-            this.numericUpDownStarCount.Location = new System.Drawing.Point(508, 3);
+            this.numericUpDownStarCount.Location = new System.Drawing.Point(556, 3);
             this.numericUpDownStarCount.Maximum = new decimal(new int[] {
             98,
             0,
@@ -271,7 +271,7 @@
             // numericUpDown_daz
             // 
             this.numericUpDown_daz.Font = new System.Drawing.Font("MS UI Gothic", 8F);
-            this.numericUpDown_daz.Location = new System.Drawing.Point(547, 3);
+            this.numericUpDown_daz.Location = new System.Drawing.Point(595, 3);
             this.numericUpDown_daz.Maximum = new decimal(new int[] {
             99,
             0,
@@ -283,14 +283,14 @@
             0,
             -2147483648});
             this.numericUpDown_daz.Name = "numericUpDown_daz";
-            this.numericUpDown_daz.Size = new System.Drawing.Size(36, 18);
+            this.numericUpDown_daz.Size = new System.Drawing.Size(36, 23);
             this.numericUpDown_daz.TabIndex = 16;
             this.numericUpDown_daz.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // numericUpDown_dalt
             // 
             this.numericUpDown_dalt.Font = new System.Drawing.Font("MS UI Gothic", 8F);
-            this.numericUpDown_dalt.Location = new System.Drawing.Point(589, 3);
+            this.numericUpDown_dalt.Location = new System.Drawing.Point(3, 36);
             this.numericUpDown_dalt.Maximum = new decimal(new int[] {
             99,
             0,
@@ -302,7 +302,7 @@
             0,
             -2147483648});
             this.numericUpDown_dalt.Name = "numericUpDown_dalt";
-            this.numericUpDown_dalt.Size = new System.Drawing.Size(36, 18);
+            this.numericUpDown_dalt.Size = new System.Drawing.Size(36, 23);
             this.numericUpDown_dalt.TabIndex = 17;
             this.numericUpDown_dalt.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
@@ -311,9 +311,9 @@
             this.checkBox_WideDR.AutoSize = true;
             this.checkBox_WideDR.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
             this.checkBox_WideDR.CheckAlign = System.Drawing.ContentAlignment.BottomLeft;
-            this.checkBox_WideDR.Location = new System.Drawing.Point(3, 32);
+            this.checkBox_WideDR.Location = new System.Drawing.Point(45, 36);
             this.checkBox_WideDR.Name = "checkBox_WideDR";
-            this.checkBox_WideDR.Size = new System.Drawing.Size(95, 16);
+            this.checkBox_WideDR.Size = new System.Drawing.Size(102, 21);
             this.checkBox_WideDR.TabIndex = 1;
             this.checkBox_WideDR.Text = "WideDR Mode";
             this.checkBox_WideDR.UseVisualStyleBackColor = true;
@@ -324,9 +324,9 @@
             this.checkBoxObsAuto.AutoSize = true;
             this.checkBoxObsAuto.Checked = true;
             this.checkBoxObsAuto.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxObsAuto.Location = new System.Drawing.Point(104, 32);
+            this.checkBoxObsAuto.Location = new System.Drawing.Point(153, 36);
             this.checkBoxObsAuto.Name = "checkBoxObsAuto";
-            this.checkBoxObsAuto.Size = new System.Drawing.Size(68, 16);
+            this.checkBoxObsAuto.Size = new System.Drawing.Size(75, 21);
             this.checkBoxObsAuto.TabIndex = 7;
             this.checkBoxObsAuto.Text = "ObsAuto";
             this.checkBoxObsAuto.UseVisualStyleBackColor = true;
@@ -335,9 +335,9 @@
             // checkBoxDispAvg
             // 
             this.checkBoxDispAvg.AutoSize = true;
-            this.checkBoxDispAvg.Location = new System.Drawing.Point(178, 32);
+            this.checkBoxDispAvg.Location = new System.Drawing.Point(234, 36);
             this.checkBoxDispAvg.Name = "checkBoxDispAvg";
-            this.checkBoxDispAvg.Size = new System.Drawing.Size(67, 16);
+            this.checkBoxDispAvg.Size = new System.Drawing.Size(74, 21);
             this.checkBoxDispAvg.TabIndex = 11;
             this.checkBoxDispAvg.Text = "DispAvg";
             this.checkBoxDispAvg.UseVisualStyleBackColor = true;
@@ -345,7 +345,7 @@
             // label_frame_rate
             // 
             this.label_frame_rate.AutoSize = true;
-            this.label_frame_rate.Location = new System.Drawing.Point(251, 29);
+            this.label_frame_rate.Location = new System.Drawing.Point(314, 33);
             this.label_frame_rate.Name = "label_frame_rate";
             this.label_frame_rate.Size = new System.Drawing.Size(35, 12);
             this.label_frame_rate.TabIndex = 9;
@@ -354,7 +354,7 @@
             // label_ID
             // 
             this.label_ID.AutoSize = true;
-            this.label_ID.Location = new System.Drawing.Point(292, 29);
+            this.label_ID.Location = new System.Drawing.Point(355, 33);
             this.label_ID.Name = "label_ID";
             this.label_ID.Size = new System.Drawing.Size(44, 12);
             this.label_ID.TabIndex = 10;
@@ -363,7 +363,7 @@
             // label_X2Y2
             // 
             this.label_X2Y2.AutoSize = true;
-            this.label_X2Y2.Location = new System.Drawing.Point(342, 29);
+            this.label_X2Y2.Location = new System.Drawing.Point(405, 33);
             this.label_X2Y2.Name = "label_X2Y2";
             this.label_X2Y2.Size = new System.Drawing.Size(85, 12);
             this.label_X2Y2.TabIndex = 13;
@@ -373,20 +373,21 @@
             // 
             tableLayoutPanel1.SetColumnSpan(this.textBox1, 2);
             this.textBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox1.Location = new System.Drawing.Point(3, 601);
+            this.textBox1.Location = new System.Drawing.Point(3, 633);
             this.textBox1.Name = "textBox1";
-            this.textBox1.Size = new System.Drawing.Size(640, 19);
+            this.textBox1.Size = new System.Drawing.Size(639, 19);
             this.textBox1.TabIndex = 3;
             // 
             // richTextBox1
             // 
             tableLayoutPanel1.SetColumnSpan(this.richTextBox1, 2);
             this.richTextBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.richTextBox1.Location = new System.Drawing.Point(3, 542);
+            this.richTextBox1.Location = new System.Drawing.Point(3, 547);
             this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.Size = new System.Drawing.Size(640, 53);
+            this.richTextBox1.Size = new System.Drawing.Size(639, 80);
             this.richTextBox1.TabIndex = 4;
             this.richTextBox1.Text = "";
+            this.richTextBox1.TextChanged += new System.EventHandler(this.richTextBox1_TextChanged);
             // 
             // timerSaveTimeOver
             // 
@@ -412,6 +413,7 @@
             // 
             // statusStrip1
             // 
+            this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripStatusLabelFramerate,
             this.toolStripStatusLabelFailed,
@@ -419,46 +421,46 @@
             this.toolStripStatusLabelPixelClock,
             this.toolStripStatusLabelExposure,
             this.toolStripStatusLabelGain});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 597);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 619);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(646, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(645, 32);
             this.statusStrip1.TabIndex = 1;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // toolStripStatusLabelFramerate
             // 
             this.toolStripStatusLabelFramerate.Name = "toolStripStatusLabelFramerate";
-            this.toolStripStatusLabelFramerate.Size = new System.Drawing.Size(27, 17);
+            this.toolStripStatusLabelFramerate.Size = new System.Drawing.Size(39, 25);
             this.toolStripStatusLabelFramerate.Text = "Fps";
             // 
             // toolStripStatusLabelFailed
             // 
             this.toolStripStatusLabelFailed.Name = "toolStripStatusLabelFailed";
-            this.toolStripStatusLabelFailed.Size = new System.Drawing.Size(133, 17);
+            this.toolStripStatusLabelFailed.Size = new System.Drawing.Size(181, 25);
             this.toolStripStatusLabelFailed.Text = "toolStripStatusLabel2";
             // 
             // toolStripStatusLabelID
             // 
             this.toolStripStatusLabelID.Name = "toolStripStatusLabelID";
-            this.toolStripStatusLabelID.Size = new System.Drawing.Size(59, 17);
+            this.toolStripStatusLabelID.Size = new System.Drawing.Size(78, 25);
             this.toolStripStatusLabelID.Text = "FrameID";
             // 
             // toolStripStatusLabelPixelClock
             // 
             this.toolStripStatusLabelPixelClock.Name = "toolStripStatusLabelPixelClock";
-            this.toolStripStatusLabelPixelClock.Size = new System.Drawing.Size(22, 17);
+            this.toolStripStatusLabelPixelClock.Size = new System.Drawing.Size(33, 25);
             this.toolStripStatusLabelPixelClock.Text = "PC";
             // 
             // toolStripStatusLabelExposure
             // 
             this.toolStripStatusLabelExposure.Name = "toolStripStatusLabelExposure";
-            this.toolStripStatusLabelExposure.Size = new System.Drawing.Size(97, 17);
+            this.toolStripStatusLabelExposure.Size = new System.Drawing.Size(119, 25);
             this.toolStripStatusLabelExposure.Text = "Exp: xx.xx[ms]";
             // 
             // toolStripStatusLabelGain
             // 
             this.toolStripStatusLabelGain.Name = "toolStripStatusLabelGain";
-            this.toolStripStatusLabelGain.Size = new System.Drawing.Size(52, 17);
+            this.toolStripStatusLabelGain.Size = new System.Drawing.Size(67, 25);
             this.toolStripStatusLabelGain.Text = "Gain:xx";
             // 
             // timerMTmonSend
@@ -503,7 +505,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(646, 619);
+            this.ClientSize = new System.Drawing.Size(645, 651);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;

@@ -166,7 +166,7 @@ namespace MT3
             cam.Memory.Lock(s32MemID);
             cam.Information.GetImageInfo(s32MemID, out imageInfo);
             cam.Memory.ToIntPtr(s32MemID, out ptr);
-            CopyMemory(imgdata.img.ImageDataOrigin, ptr, imgdata.img.ImageSize);
+            CopyMemory(imgdata.img.Data, ptr, (imgdata.img.Height * imgdata.img.Width));
             ///CopyMemory(img_dmk.ImageDataOrigin, ptr, img_dmk.ImageSize);
             ///Cv.Copy(img_dmk, imgdata.img);
             if (ueye_frame_number == 0) ueye_frame_number = imageInfo.FrameNumber; //frame number初期値
@@ -176,7 +176,7 @@ namespace MT3
             //Cv.Copy(img_dmk, imgdata.img);
 
             //img_dmk3.ImageData = ptr;
-            //Cv.CvtColor(img_dmk3, imgdata.img, ColorConversion.BgrToGray); // 遅い er:2.6%
+            //Cv.CvtColor(img_dmk3, imgdata.img, ColorConversionCodes.BgrToGray); // 遅い er:2.6%
             //Cv.Split(img_dmk3, imgdata.img, null,null,null); // er:1.1%
             cam.Memory.Unlock(s32MemID);
 
@@ -211,8 +211,8 @@ namespace MT3
                 cam.Memory.Lock(s32MemID);
                 cam.Information.GetImageInfo(s32MemID, out imageInfo);
                 cam.Memory.ToIntPtr(s32MemID, out ptr);
-                CopyMemory(img_dmk3.ImageDataOrigin, ptr, img_dmk3.ImageSize);
-                Cv.CvtColor(img_dmk3, img_dmk, ColorConversion.BgrToGray);
+                CopyMemory(img_dmk3.Data, ptr, (int)img_dmk3.Total()); // Mat.Size(2) ?
+                Cv2.CvtColor(img_dmk3, img_dmk, ColorConversionCodes.BGR2GRAY );
                 cam.Memory.Unlock(s32MemID);
 
                 //Cv.Copy(img_dmk, img2, null);
@@ -224,37 +224,38 @@ namespace MT3
                 if (ImgSaveFlag == TRUE)
                 {
                     double min_val, max_val;
-                    CvPoint min_loc, max_loc;
+                    Point min_loc, max_loc;
                     int size = 15;
                     int size2x = size / 2;
                     int size2y = size / 2;
                     //int num    = 0;
+                    int ks = 3;
                     double sigma = 3;
 
                     // 位置検出
-                    Cv.Smooth(img_dmk, img2, SmoothType.Gaussian, size, 0, sigma, 0);
-                    CvRect rect = new CvRect(1, 1, appSettings.Width - 2, appSettings.Height - 2);
-                    Cv.SetImageROI(img2, rect);
-                    Cv.MinMaxLoc(img2, out  min_val, out  max_val, out  min_loc, out  max_loc, null);
-                    Cv.ResetImageROI(img2);
-                    max_loc.X += 1; // 基準点が(1,1)のため＋１
-                    max_loc.Y += 1;
+                    //Cv2.Smooth(img_dmk, img2, SmoothType.Gaussian, size, 0, sigma, 0);
+                    Cv2.GaussianBlur(img_dmk, img2, new OpenCvSharp.Size(ks,ks) ,sigma);
+                    Rect rect = new Rect(1, 1, appSettings.Width - 2, appSettings.Height - 2);
+                    //Cv2.SetImageROI(img2, rect);  // img2.SubMat(rect);
+                    Cv2.MinMaxLoc(img2, out  min_val, out  max_val, out  min_loc, out  max_loc, null);
+                    //Cv2.ResetImageROI(img2);
+                    //max_loc.X += 1;  max_loc.Y += 1;// 基準点が(1,1)のため＋１
 
-                    double m00, m10, m01;
                     if (max_loc.X - size2x < 0) size2x = max_loc.X;
                     if (max_loc.Y - size2y < 0) size2y = max_loc.Y;
                     if (max_loc.X + size2x >= appSettings.Width ) size2x = appSettings.Width  - max_loc.X - 1;
                     if (max_loc.Y + size2y >= appSettings.Height) size2y = appSettings.Height - max_loc.Y - 1;
-                    rect = new CvRect(max_loc.X - size2x, max_loc.Y - size2y, size, size);
-                    CvMoments moments;
-                    Cv.SetImageROI(img2, rect);
-                    Cv.Moments(img2, out moments, false);
-                    Cv.ResetImageROI(img2);
-                    m00 = Cv.GetSpatialMoment(moments, 0, 0);
-                    m10 = Cv.GetSpatialMoment(moments, 1, 0);
-                    m01 = Cv.GetSpatialMoment(moments, 0, 1);
-                    gx = max_loc.X - size2x + m10 / m00;
-                    gy = max_loc.Y - size2y + m01 / m00;
+                    rect = new Rect(max_loc.X - size2x, max_loc.Y - size2y, size, size);
+                    //Cv2.Moments moments;
+                    //Cv2.SetImageROI(img2, rect);
+                    //Cv2.Moments(img2.SubMat(rect)moments, false);
+                    var moments =  Cv2.Moments(img2.SubMat(rect), false);
+                    //Cv2.ResetImageROI(img2);
+                    //m00 = Cv2.GetSpatialMoment(moments, 0, 0);
+                    //m10 = Cv2.GetSpatialMoment(moments, 1, 0);
+                    //m01 = Cv2.GetSpatialMoment(moments, 0, 1);
+                    gx = max_loc.X - size2x + moments.M10 / moments.M00; // m10 / m00;
+                    gy = max_loc.Y - size2y + moments.M01 / moments.M00; // m01 / m00;
 
                     //    Pid_Data_Send();
                     elapsed1 = sw.ElapsedTicks;

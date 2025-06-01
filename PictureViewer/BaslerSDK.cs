@@ -153,7 +153,7 @@ namespace MT3
                             // Marshal.Copyの引数
                             // 第一引数には、コピー元、第二引数にはstartIndex、
                             // 第三引数には、コピー先、第四引数にはコピーする長さ
-                            Marshal.Copy(image.Buffer, 0, imgdata.img.ImageDataOrigin, image.Buffer.Length);
+                            Marshal.Copy(image.Buffer, 0, imgdata.img.Data, image.Buffer.Length); // 他の候補として、DataPointer,DataStart　がある
                             //Marshal.Copy(image.Buffer, 0, imgdata.img.ImageDataOrigin, image.Buffer.Length - 1);
                             //Console.WriteLine(" image[0]:{0} {1}",image.Buffer[0], image.Buffer[1]);
 
@@ -181,7 +181,7 @@ namespace MT3
                         // 表示画像反転 実装場所　要検討
                         if (appSettings.Flipmode == OpenCvSharp.FlipMode.X || appSettings.Flipmode == OpenCvSharp.FlipMode.Y)
                         {
-                            Cv.Flip(imgdata.img, imgdata.img, appSettings.Flipmode);
+                            Cv2.Flip(imgdata.img, imgdata.img, appSettings.Flipmode);
                         }
                     }
                     catch (KeyNotFoundException)

@@ -5,7 +5,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Windows.Forms;
 using OpenCvSharp;
-using OpenCvSharp.Blob;
+//using OpenCvSharp.Blob;
 
 namespace MT3
 {
@@ -26,13 +26,48 @@ namespace MT3
          int th_id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("detect ThreadID : " + th_id);
             //if (appSettings.UseDetect) return;
 
-            #region 位置検出2  //Blob
+            #region 位置検出2  //Blob -> SimpleBlobDetector(2025/3/22)
             try
             {
                 //Cv.Smooth(imgdata.img, img2, SmoothType.Median, 5, 0, 0, 0);
                 //Cv.Threshold(img2, img2, appSettings.ThresholdBlob, 255, ThresholdType.Binary); //2ms
-                Cv.Threshold(imgdata.img, img2, appSettings.ThresholdBlob, 255, ThresholdType.Binary); //2ms
-                blobs.Label(img2); //3ms
+                Cv2.Threshold(imgdata.img, img2, appSettings.ThresholdBlob, 255, ThresholdTypes.Binary); //2ms
+
+                var detectorParams = new SimpleBlobDetector.Params
+                {
+                    //MinDistBetweenBlobs = 10, // 10 pixels between blobs
+                    //MinRepeatability = 1,
+
+                    //MinThreshold = 100,
+                    //MaxThreshold = 255,
+                    //ThresholdStep = 5,
+                                        
+                    FilterByArea = true,
+                    MinArea = 0.001f, // 10 pixels squared
+                    MaxArea = 500,
+
+                    FilterByCircularity = false,
+                    //FilterByCircularity = true,
+                    //MinCircularity = 0.001f,
+
+                    FilterByConvexity = false,
+                    //FilterByConvexity = true,
+                    //MinConvexity = 0.001f,
+                    //MaxConvexity = 10,
+
+                    FilterByInertia = false,
+                    //FilterByInertia = true,
+                    //MinInertiaRatio = 0.001f,
+
+                    FilterByColor = false
+                    //FilterByColor = true,
+                    //BlobColor = 255 // to extract light blobs
+                };
+                var simpleBlobDetector = SimpleBlobDetector.Create(detectorParams);
+                blobs = simpleBlobDetector.Detect(img2);
+
+                //blobs.Label(img2); //3ms
+                Cv2.DrawKeypoints(imgdata.img, blobs, img2, Scalar.FromRgb(255, 0, 0) ); //3ms
             }//8ms
             catch (KeyNotFoundException)
             {
@@ -41,7 +76,14 @@ namespace MT3
           if (appSettings.UseDetect) return;//必ずreturn
             try
             {
-                maxBlob = blobs.LargestBlob();
+                //maxBlob = blobs.LargestBlob();
+                for (int i = 0; i < blobs.Length ; i++)
+                {
+                    if (blobs[i].Size > maxBlob.Size)
+                    {
+                        maxBlob = blobs[i];
+                    }
+                }                
             }//1ms
             catch (KeyNotFoundException)
             {
@@ -50,13 +92,13 @@ namespace MT3
 
             try
             {
-                if (blobs.Count > 0)
+                if (blobs.Length > 0)
                 {
-                    int min_area = Math.Max(2, (int)(appSettings.ThresholdMinArea * maxBlob.Area));
-                    blobs.FilterByArea(min_area, int.MaxValue); //2ms 面積がmin_area未満のblobを削除
+                    int min_area = Math.Max(2, (int)(appSettings.ThresholdMinArea * maxBlob.Size));
+                    // 設定で除去に変更　//blobs.FilterByArea(min_area, int.MaxValue); //2ms 面積がmin_area未満のblobを削除
                 }
                 max_label = 0;
-                if (blobs.Count > 0)
+                if (blobs.Length > 0)
                 {
                     max_label = pos_mes.mesure(blobs); //4ms
                 } 
@@ -66,7 +108,8 @@ namespace MT3
                 MessageBox.Show("KeyNotFoundException:213");
             }
 
-            if (max_label > 0 && blobs.ContainsKey(max_label))
+            //if (max_label > 0 && blobs.ContainsKey(max_label))
+            if (max_label > 0 )
             {
                 try
                 {
@@ -77,7 +120,7 @@ namespace MT3
                     MessageBox.Show("KeyNotFoundException:2171");
                 }
                 try{
-                    max_centroid = maxBlob.Centroid;
+                    max_centroid = maxBlob.Pt ;
                 }
                 catch (KeyNotFoundException)
                 {
@@ -86,8 +129,9 @@ namespace MT3
                 try{
                     gx = max_centroid.X;
                     gy = max_centroid.Y;
-                    max_val = maxBlob.Area;
-                    blob_rect = maxBlob.Rect;
+                    max_val = maxBlob.Size;
+                    double r = Math.Sqrt(max_val);
+                    blob_rect = new Rect((int)(gx - r), (int)(gy - r), (int)(2.0 * r), (int)(2.0 * r));
                 }
                 catch (KeyNotFoundException)
                 {
@@ -95,20 +139,22 @@ namespace MT3
                 }
 
                 // 観測値(kalman)
-                measurement.Set2D(0, 0, (float)(gx - xoa)); //2ms
-                measurement.Set2D(1, 0, (float)(gy - yoa)); //7ms
+                measurement.Set<float>(0, 0, (float)(gx - xoa)); //2ms
+                measurement.Set<float>(1, 0, (float)(gy - yoa)); //7ms
+                //kalman.MeasurementMatrix.Set<float>(0, 0, (float)(gx - xoa)); //2ms
+                //kalman.MeasurementMatrix.Set<float>(1, 0, (float)(gy - yoa)); //7ms
                 if (kalman_id++ == 0)
                 {
                     // 初期値設定
                     double errcov = 1.0;
-                    kalman.StatePost.Set1D(0, measurement.Get1D(0));
-                    kalman.StatePost.Set1D(1, measurement.Get1D(1));
-                    Cv.SetIdentity(kalman.ErrorCovPost, Cv.RealScalar(errcov));
+                    kalman.StatePost.Set<float>(0, measurement.Get<float>(0,0));
+                    kalman.StatePost.Set<float>(1, measurement.Get<float>(1,0));
+                    Cv2.SetIdentity(kalman.ErrorCovPost, new Scalar(errcov));
                 }//2ms
                 // 修正フェーズ(kalman)
                 try
                 {
-                    correction = Cv.KalmanCorrect(kalman, measurement);
+                    correction = kalman.Correct( measurement );
                 }
                 catch (KeyNotFoundException)
                 {
@@ -118,11 +164,15 @@ namespace MT3
                 // 予測フェーズ(kalman)
                 try
                 {
-                    prediction = Cv.KalmanPredict(kalman);
-                    kgx = prediction.DataArraySingle[0] + xoa;
-                    kgy = prediction.DataArraySingle[1] + yoa;
-                    kvx = prediction.DataArraySingle[2];
-                    kvy = prediction.DataArraySingle[3];
+                    prediction = kalman.Predict( );
+                    //kgx = prediction.DataArraySingle[0] + xoa;
+                    //kgy = prediction.DataArraySingle[1] + yoa;
+                    //kvx = prediction.DataArraySingle[2];
+                    //kvy = prediction.DataArraySingle[3];
+                    kgx = prediction.Get<float>(0) + xoa;
+                    kgy = prediction.Get<float>(1) + yoa;
+                    kvx = prediction.Get<float>(2);
+                    kvy = prediction.Get<float>(3);
                 } //1ms
                 catch (KeyNotFoundException)
                 {
@@ -135,7 +185,7 @@ namespace MT3
                 {
                     sgx = kgx;
                     sgy = kgy;
-                    //imgSrc.Circle(new CvPoint((int)(prediction.DataArraySingle[0] + xoa), (int)(prediction.DataArraySingle[1] + yoa)), 30, new CvColor(100, 100, 255));
+                    //imgSrc.Circle(new CvPoint((int)(prediction.DataArraySingle[0] + xoa), (int)(prediction.DataArraySingle[1] + yoa)), 30, new Scalar(100, 100, 255));
                     //w2.WriteLine("{0:D3} {1:F2} {2:F2} {3:F2} {4:F2} {5} {6} {7}", i, max_centroid.X, max_centroid.Y, prediction.DataArraySingle[0] + xc, prediction.DataArraySingle[1] + yc, vm, dx, dy);
                 }
                 dx = sgx - appSettings.Xoa;
@@ -265,32 +315,34 @@ namespace MT3
         {
             // 初期化(kalman)
             kalman_id = 0;
-            Cv.SetIdentity(kalman.MeasurementMatrix, Cv.RealScalar(1.0));
-            Cv.SetIdentity(kalman.ProcessNoiseCov, Cv.RealScalar(1e-4));
-            Cv.SetIdentity(kalman.MeasurementNoiseCov, Cv.RealScalar(0.001));
-            Cv.SetIdentity(kalman.ErrorCovPost, Cv.RealScalar(1.0));
-            measurement.Zero();
+            Cv2.SetIdentity(kalman.MeasurementMatrix,   new Scalar(1.0));
+            Cv2.SetIdentity(kalman.ProcessNoiseCov,     new Scalar(1e-4));
+            Cv2.SetIdentity(kalman.MeasurementNoiseCov, new Scalar(0.001));
+            Cv2.SetIdentity(kalman.ErrorCovPost,        new Scalar(1.0));
+            //measurement.Zeros(2, 1, MatType.CV_32FC1);
+            measurement.Set<float>(0, 0, 0f);
+            measurement.Set<float>(1, 0, 0f);
 
             // 等速直線運動モデル(kalman)
-            kalman.TransitionMatrix.Set2D(0, 0, 1.0f);
-            kalman.TransitionMatrix.Set2D(0, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(0, 2, 1.0f);
-            kalman.TransitionMatrix.Set2D(0, 3, 0.0f);
+            kalman.TransitionMatrix.Set<float>(0, 0, 1.0f);
+            kalman.TransitionMatrix.Set<float>(0, 1, 0.0f);
+            kalman.TransitionMatrix.Set<float>(0, 2, 1.0f);
+            kalman.TransitionMatrix.Set<float>(0, 3, 0.0f);
 
-            kalman.TransitionMatrix.Set2D(1, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(1, 1, 1.0f);
-            kalman.TransitionMatrix.Set2D(1, 2, 0.0f);
-            kalman.TransitionMatrix.Set2D(1, 3, 1.0f);
+            kalman.TransitionMatrix.Set<float>(1, 0, 0.0f);
+            kalman.TransitionMatrix.Set<float>(1, 1, 1.0f);
+            kalman.TransitionMatrix.Set<float>(1, 2, 0.0f);
+            kalman.TransitionMatrix.Set<float>(1, 3, 1.0f);
 
-            kalman.TransitionMatrix.Set2D(2, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(2, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(2, 2, 1.0f);
-            kalman.TransitionMatrix.Set2D(2, 3, 0.0f);
+            kalman.TransitionMatrix.Set<float>(2, 0, 0.0f);
+            kalman.TransitionMatrix.Set<float>(2, 1, 0.0f);
+            kalman.TransitionMatrix.Set<float>(2, 2, 1.0f);
+            kalman.TransitionMatrix.Set<float>(2, 3, 0.0f);
 
-            kalman.TransitionMatrix.Set2D(3, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 2, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 3, 1.0f);
+            kalman.TransitionMatrix.Set<float>(3, 0, 0.0f);
+            kalman.TransitionMatrix.Set<float>(3, 1, 0.0f);
+            kalman.TransitionMatrix.Set<float>(3, 2, 0.0f);
+            kalman.TransitionMatrix.Set<float>(3, 3, 1.0f);
         }
 
     }

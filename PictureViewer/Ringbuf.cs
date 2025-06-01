@@ -5,8 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Drawing;
 using OpenCvSharp;
-using OpenCvSharp.Blob;
+using OpenCvSharp.Extensions;
+//using OpenCvSharp.Blob;
 
 namespace MT3
 {
@@ -36,19 +38,19 @@ namespace MT3
         public double vaz2_kv, valt2_kv, az2_c, alt2_c, kvaz, kvalt;
         public double az, alt, vaz, valt;
 
-        public CvRect max_blob_rect;
+        public OpenCvSharp.Rect max_blob_rect;
         public bool ImgSaveFlag;
     }
 
     public struct ImageData
     {
-        public int id;
+        public int id;          // frame ID
         public int detect_mode; // 0:off  1:on
-        public DateTime t;
-        public IplImage img;
+        public DateTime t;      // フレームの取得時刻
+        public Mat img;         // 生フレーム画像
         public bool ImgSaveFlag;
         public double gx, gy, vmax;
-        public CvBlobs blobs;
+        public KeyPoint [] blobs;
         public double kgx, kgy, kvx, kvy;
         public double az, alt, vaz, valt;
         public Udp_kv udpkv1;
@@ -59,7 +61,7 @@ namespace MT3
             id = 0;
             detect_mode = 0;
             t = DateTime.Now;
-            img = null;// new IplImage(w, h, BitDepth.U8, 1);
+            img = null;// new Mat(h, w, BitDepth.U8, 1);
             ImgSaveFlag = false;
             gx = gy = vmax = 0.0;
             kgx = kgy = kvx = kvy = 0.0;
@@ -75,17 +77,17 @@ namespace MT3
             detect_mode = 0;
             t = DateTime.Now;
             img = null;
-            //img = new IplImage(w, h, BitDepth.U8, 1);
+            //img = new Mat(h, w, BitDepth.U8, 1);
             ImgSaveFlag = false;
             gx = gy = vmax = 0.0;
             kgx = kgy = kvx = kvy = 0.0;
             az = alt = vaz = valt = 0.0;
-            blobs = new CvBlobs();
+            blobs = new KeyPoint[0]; //CvBlobs();
             udpkv1 = new Udp_kv();
-        }
+        } 
         public void init(Int32 w, Int32 h)
         {
-            img = new IplImage(w, h, BitDepth.U8, 1);
+            img = new Mat(h, w, MatType.CV_8UC1); // 8bit mono
         }
     }
     /// <summary>
@@ -97,11 +99,13 @@ namespace MT3
         #region フィールド
 
         ImageData[] data;
-        IplImage[] img;
+        Mat[] img;
         int top, bottom;
         int mask;
 
-        CvVideoWriter vw;
+        VideoWriter vw;
+        AForge.Video.VFW.AVIWriter aviwriter; //= new AForge.Video.VFW.AVIWriter();
+
         int save_frame_count;
         int save_frame_count_max;
         int avi_id;
@@ -140,17 +144,17 @@ namespace MT3
         }
 
         // Sub image
-        IplImage sub_image;
+        Mat sub_image;
         public int Sub_width { get; set; } // sub image width
         public int Sub_height{ get; set; } // sub image heigth
 
-        public IplImage background_image;
+        public Mat background_image;
         public int bg_interval { get; set; } // background image interval 1:all frame 2:一つおき
 
-        IplImage imgR;
-        //IplImage imgBGR = new IplImage(640, 480, BitDepth.U8, 3);
-        //IplImage imgR = new IplImage(640, 480, BitDepth.U8, 1);
-        CvFont font = new CvFont(FontFace.HersheyComplex, 0.5, 0.5);
+        Mat imgR;
+        //Mat imgBGR  = new Mat(480,640, BitDepth.U8, 3);
+        //Mat imgR    = new Mat(480,640, BitDepth.U8, 1);
+        //Font font   = new Font(HersheyFonts.HersheyComplex, 0.5, 0.5);
         VIDEO_DATA vd = new VIDEO_DATA();
         StreamWriter writer;//= new StreamWriter(@"Test.txt", true, System.Text.Encoding.GetEncoding("shift_jis"));
 
@@ -168,28 +172,28 @@ namespace MT3
         {
             _no_cap_dev = 9;
             _save_dir = @"C:\Users\Public\img_data\";
-            _width = width;
+            _width  = width;
             _height = height;
             save_frame_count_max = 100;
 
-            capacity = Pow2((uint)capacity);
+            capacity  = Pow2((uint)capacity);
             this.data = new ImageData[capacity];
-            this.img = new IplImage[capacity];
+            this.img  = new Mat[capacity];
             for (int i = 0; i < capacity; i++)
             {
                 //this.data[i] = new ImageData(width,height) ;
-                this.img[i]  = new IplImage(width, height, BitDepth.U8, 1);
+                this.img[i] = new Mat(height, width, MatType.CV_8UC1);// BitDepth.U8, 1);
             }
             this.top = this.bottom = 0;
             this.mask = capacity - 1;
-            this.imgR = new IplImage(width, height, BitDepth.U8, 1);
+            this.imgR = new Mat(height, width, MatType.CV_8UC1);// BitDepth.U8, 1);
 
             //this.rect = new CvRect(new CvPoint( 256, 256);
             Sub_height = 256;
-            Sub_width = 256;
-            this.sub_image = new IplImage(Sub_width, Sub_height, BitDepth.U8, 1);
-            bg_interval = 25;
-            this.background_image = new IplImage(width, height, BitDepth.F32, 1);
+            Sub_width  = 256;
+            this.sub_image = new Mat(Sub_height, Sub_width, MatType.CV_8UC1);// BitDepth.U8, 1);
+            bg_interval = 64;
+            this.background_image = new Mat(height, width, MatType.CV_32FC1);//  BitDepth.F32, 1);
         }
 
         /// <summary>
@@ -206,21 +210,22 @@ namespace MT3
             SaveDir     = save_dir;
             save_frame_count_max = avi_max_fr;
             avi_id      = 0;
+            bg_interval = 64;
 
-            capacity = Pow2((uint)capacity);
+
+            capacity  = Pow2((uint)capacity);
             this.data = new ImageData[capacity];
-            this.img = new IplImage[capacity];
+            this.img  = new Mat[capacity];
             for (int i = 0; i < capacity; i++)
-                this.img[i] = new IplImage(width, height, BitDepth.U8, 1); //1
+                this.img[i] = new Mat(height, width, MatType.CV_8UC1);// BitDepth.U8, 1);
             this.top = this.bottom = 0;
             this.mask = capacity - 1;
-            this.imgR = new IplImage(width, height, BitDepth.U8, 1);
+            this.imgR = new Mat(height, width, MatType.CV_8UC1);// BitDepth.U8, 1);
 
             Sub_height = 256;
             Sub_width = 256;
-            this.sub_image = new IplImage(Sub_width, Sub_height, BitDepth.U8, 1);
-            bg_interval = 25;
-            this.background_image = new IplImage(width, height, BitDepth.F32, 1);
+            this.sub_image = new Mat(Sub_height, Sub_width, MatType.CV_8UC1);// BitDepth.U8, 1);
+            this.background_image = new Mat(height, width, MatType.CV_32FC1);//  BitDepth.F32, 1);
         }
 
 
@@ -282,7 +287,7 @@ namespace MT3
         /// </summary>
         /// <param name="i">読み書き位置</param>
         /// <returns>読み出した要素</returns>
-        public IplImage Image(int i)
+        public Mat Image(int i)
         {
             return this.img[(i + this.top) & this.mask];
         }
@@ -291,7 +296,7 @@ namespace MT3
         /// 末尾の画像を読み出し。
         /// </summary>
         /// <param name="elem">読み出した要素</param>
-        public IplImage LastImage()
+        public Mat LastImage()
         {
             return this.img[(this.bottom) & this.mask];
         }
@@ -300,7 +305,7 @@ namespace MT3
         /// 先頭の画像を読み出し。
         /// </summary>
         /// <param name="elem">読み出した要素</param>
-        public IplImage FirstImage()
+        public Mat FirstImage()
         {
             return this.img[(this.top) & this.mask];
         }
@@ -309,7 +314,7 @@ namespace MT3
         /// 背景画像を読み出し。
         /// </summary>
         /// <param name="elem">読み出した要素</param>
-        public IplImage backgroundImageF()
+        public Mat backgroundImageF()
         {
             return this.background_image;
         }
@@ -318,10 +323,11 @@ namespace MT3
         /// 背景画像を読み出し。
         /// </summary>
         /// <param name="elem">読み出した要素</param>
-        public IplImage backgroundImage()
+        public Mat backgroundImage()
         {
             double scale = 1.0;
-            Cv.ConvertScale(background_image, imgR, scale);
+            //Cv.ConvertScale(background_image, imgR, scale);
+            imgR = background_image.ConvertScaleAbs( scale );
             return this.imgR;
         }
 
@@ -343,11 +349,11 @@ namespace MT3
                 data[i] = elem;
                 ++i;
             }
-            IplImage[] img = new IplImage[this.data.Length * 2];
+            Mat[] img = new Mat[this.data.Length * 2];
             for (i = 0; i < this.data.Length * 2; i++)
-                this.img[i] = new IplImage(Width, Height, BitDepth.U8, 1);
+                this.img[i] = new Mat(Height, Width, MatType.CV_8UC1);// BitDepth.U8, 1);
             i = 0;
-            foreach (IplImage elem in this)
+            foreach (Mat elem in this)
             {
                 img[i] = elem;
                 ++i;
@@ -366,7 +372,10 @@ namespace MT3
         {
             if (elem.id % bg_interval == 0)
             {
-                Cv.RunningAvg(elem.img, background_image, 0.1);
+                double alpha = 0.1;
+                //Cv.RunningAvg(elem.img, background_image, 0.1);
+                //Cv2.AccumulateWeighted(elem.img, background_image, alpha, mask);
+                Cv2.AccumulateWeighted(elem.img, background_image, alpha, elem.img);
             }
         }
         /// <summary>
@@ -412,7 +421,8 @@ namespace MT3
 
             this.top = (this.top - 1) & this.mask;
             this.data[this.top] = elem;
-            Cv.Copy(elem.img, this.img[this.top]);
+            //Cv.Copy(elem.img, this.img[this.top]);
+            elem.img.CopyTo( this.img[this.top] );
         }
         /// <summary>
         /// 先頭に新しい要素を追加。
@@ -426,7 +436,8 @@ namespace MT3
 
             this.top = (this.top - 1) & this.mask;
             this.data[this.top] = elem;
-            System.Runtime.InteropServices.Marshal.Copy(buf, 0, this.img[this.top].ImageDataOrigin, buf.Length);
+            //System.Runtime.InteropServices.Marshal.Copy(buf, 0, this.img[this.top].ImageDataOrigin, buf.Length);
+            System.Runtime.InteropServices.Marshal.Copy(buf, 0, this.img[this.top].Data, buf.Length);
         }
 
         /// <summary>
@@ -441,7 +452,8 @@ namespace MT3
 
             this.data[this.bottom] = elem;
             this.bottom = (this.bottom + 1) & this.mask;
-            Cv.Copy(elem.img, this.img[this.bottom]);
+            //Cv.Copy(elem.img, this.img[this.bottom]);
+            elem.img.CopyTo( this.img[this.bottom] );
         }
 
         /// <summary>
@@ -453,7 +465,8 @@ namespace MT3
             for (int n = i; n < this.Count - 1; ++n)
             {
                 this[n] = this[n + 1];
-                Cv.Copy(this.img[n + 1], this.img[n]);
+                //Cv.Copy(this.img[n + 1], this.img[n]);
+                this.img[n + 1].CopyTo( this.img[n] );
             }
             this.bottom = (this.bottom - 1) & this.mask;
         }
@@ -474,7 +487,8 @@ namespace MT3
             // 初期化チェック
             if (this.data[this.bottom].ImgSaveFlag == false && this.data[(this.bottom - 1) & this.mask].ImgSaveFlag == true)
             {
-                string fn = SaveDir + this.data[(this.bottom - 1) & this.mask].t.ToString("yyyyMMdd") + @"\";
+                //string fn = SaveDir + this.data[(this.bottom - 1) & this.mask].t.ToString("yyyyMMdd") + @"\";
+                string fn = SaveDir; // 年月日のフォルダは作らない
                 // フォルダ (ディレクトリ) が存在しているかどうか確認する
                 if (!System.IO.Directory.Exists(fn))
                 {
@@ -482,7 +496,8 @@ namespace MT3
                 }
                 fn += this.data[(this.bottom - 1) & this.mask].t.ToString("yyyyMMdd_HHmmss_fff") + string.Format("_{00}", NoCapDev);
                 FileName = fn;
-                fn += ".avi";
+                fn += ".avi";　//DIB  XVID：.avi
+                //fn += ".mp4";　//H264：.mp4
                 VideoWriterInit(fn);
                 avi_id = 0;
             }
@@ -550,9 +565,35 @@ namespace MT3
         /// </remarks>
         public void VideoWriterInit(string fn)
         {
-            int codec = Cv.FOURCC('D', 'I', 'B', ' ');  // 0; //非圧縮avi
-            //this.vw = new CvVideoWriter(fn, codec, 29.97, new CvSize(this.width, this.height), true); //color
-            this.vw = new CvVideoWriter(fn, codec, 29.97, new CvSize(Width, Height), false); //mono
+            int select_vw = 2; // 1:OpenCvSharp  2:AForge
+            if (select_vw == 1)
+            {
+                //int codec = Cv.FOURCC('D', 'I', 'B', ' ');  // 0; //非圧縮avi
+                //this.vw = new CvVideoWriter(fn, codec, 29.97, new CvSize(this.width, this.height), true); //color
+
+                //this.vw = new VideoWriter(fn, OpenCvSharp.FourCC.MJPG, 30.0, new OpenCvSharp.Size(Width, Height), false); // save OK .avi
+                this.vw = new VideoWriter(fn, OpenCvSharp.FourCC.XVID, 30.0, new OpenCvSharp.Size(Width, Height), false); // save OK .avi
+                //this.vw = new VideoWriter(fn, OpenCvSharp.FourCC.H264, 30.0, new OpenCvSharp.Size(Width, Height), false); // save NG  .mp4  DLLがないため？
+                //this.vw = new VideoWriter(fn, OpenCvSharp.FourCC.DIB, 30.00, new OpenCvSharp.Size(Width, Height), false); //save NG ???
+                //this.vw = new VideoWriter(fn, 0 , 0, new OpenCvSharp.Size(Width, Height), false); //save NG ???
+                if (vw.IsOpened() == false)
+                {
+                    Console.WriteLine("VideoWriter not open.");
+                }
+            }
+            else if (select_vw == 2)
+            {
+                // OpenCvSharp4 は、DIBでファイルopenに失敗するため、AForge を使用
+                this.aviwriter = new AForge.Video.VFW.AVIWriter();
+                this.aviwriter.Codec = "MSVC";
+                this.aviwriter.FrameRate = 30; // FrameRate;
+                this.aviwriter.Open(fn, Width, Height);
+                if ( aviwriter == null)
+                {
+                    Console.WriteLine("AviVideoWriter not open.");
+                }
+            }
+
             fn += this.data[(this.bottom - 1) & this.mask].t.ToString("yyyyMMdd_HHmmss_fff") + string.Format("_{00}", NoCapDev) + ".avi";
             this.writer = new StreamWriter( this.data[(this.bottom - 1) & this.mask].t.ToString("yyyyMMdd_HHmmss_fff") + string.Format("_{00}", NoCapDev) + ".txt"
 , true, System.Text.Encoding.GetEncoding("shift_jis"));
@@ -567,7 +608,12 @@ namespace MT3
         /// </remarks>
         public void VideoWriterFrame()
         {
-            if (vw == null || vw.IsDisposed || writer == null) return;
+            //if (vw == null || vw.IsDisposed || writer == null) return;
+            if (vw == null || vw.IsDisposed || writer == null)
+            {
+                AviVideoWriterFrame();
+                return;
+            }
             if (save_frame_count++ > save_frame_count_max)
             {
                 save_frame_count = 0;
@@ -577,6 +623,69 @@ namespace MT3
                 VideoWriterInit(fn);
             }
 
+            MakeWriteFrameData();
+
+            vw.Write(imgR);
+            writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
+            int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf ThreadID : " + id);
+        }
+        public void AviVideoWriterFrame()
+        {
+            //if (vw == null || vw.IsDisposed || writer == null) return;
+            if (save_frame_count++ > save_frame_count_max)
+            {
+                save_frame_count = 0;
+                aviwriter.Close();// VideoWriterRelease();
+
+                string fn = FileName + "_" + (++avi_id).ToString() + ".avi";
+                VideoWriterInit(fn);
+            }
+
+            MakeWriteFrameData();
+
+            aviwriter.AddFrame(BitmapConverter.ToBitmap(imgR));// vw.Write(imgR);
+            writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
+            int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf Avi ThreadID : " + id);
+        }
+
+        /// <summary>
+        /// 画像を保存します。
+        /// </summary>
+        /// <remarks>
+        /// ビデオ書き込み開放処理
+        /// </remarks>
+        public void VideoWriterRelease()
+        {
+            if (vw != null)
+            {
+                double scale = 1.0;
+                //Cv.ConvertScale(background_image, imgR, scale);
+                imgR = background_image.ConvertScaleAbs( scale );
+                vw.Write(imgR);
+                vw.Dispose();
+            }
+            if (aviwriter != null)
+            {
+                double scale = 1.0;
+                //Cv.ConvertScale(background_image, imgR, scale);
+                imgR = background_image.ConvertScaleAbs(scale);
+                aviwriter.AddFrame(BitmapConverter.ToBitmap(imgR));
+                aviwriter.Dispose();// vw.Dispose();
+            }
+            if (writer != null)
+            {
+                writer.Close();
+            }
+        }
+
+        /// <summary>
+        /// 画像dataを作成します。
+        /// </summary>
+        /// <remarks>
+        /// Make WriteFrame data 
+        /// </remarks>
+        public void MakeWriteFrameData()
+        {
             // 画像内にデータ埋め込み
             vd.id = (ushort)this.data[this.bottom].id;
             vd.gx = this.data[this.bottom].gx;
@@ -624,55 +733,21 @@ namespace MT3
             vd.vaz = this.data[this.bottom].vaz;
             vd.valt = this.data[this.bottom].valt;
 
-            Cv.Copy(this.img[this.bottom], imgR);
+            //Cv.Copy(this.img[this.bottom], imgR); //imgRにコピー
+            this.img[this.bottom].CopyTo(imgR);
 
             //String str = String.Format("ID:{0,6:D1} ", this.data[this.bottom].id) + this.data[this.bottom].t.ToString("yyyyMMdd_HHmmss_fff") ;
-            //imgR.PutText(str, new CvPoint(6, 14), font, new CvColor(0, 100, 120));
+            //imgR.PutText(str, new OpenCvSharp.Point(6, 14), HersheyFonts.HersheySimplex, 1.0, new Scalar(0, 100, 120));
 
-            Marshal.StructureToPtr(vd, imgR.ImageData, false);
+            //Marshal.StructureToPtr(vd, imgR.ImageData, false);
+            Marshal.StructureToPtr(vd, imgR.Data, false);
 
             //String str = String.Format("ID:{0,10:D1} ", this.data[this.bottom].id) + this.data[this.bottom].t.ToString("yyyyMMdd_HHmmss_fff") + String.Format(" ({0,6:F1},{1,6:F1})({2,6:F1})", gx, gy, vmax);
             //if (this.data[this.bottom].ImgSaveFlag) str += " True";
-            //Cv.CvtColor(this.img[this.bottom], imgGBR, ColorConversion.GrayToBgr);
+            //Cv.CvtColor(this.img[this.bottom], imgGBR, ColorConversionCodes.GrayToBgr);
             //3    Cv.Copy(this.img[this.bottom], imgGBR); //3
-            //imgGBR.PutText(str, new CvPoint(6, 14) , font, new CvColor(0, 100, 100));
-            //imgGBR.Circle(new CvPoint((int)(gx+0.5),(int)(gy+0.5)), 15, new CvColor(0, 100, 255));
-
-            vw.WriteFrame(imgR);
-            writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
-            int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf ThreadID : " + id);
-        }
-
-        /// <summary>
-        /// 画像を保存します。
-        /// </summary>
-        /// <remarks>
-        /// ビデオ書き込み開放処理
-        /// </remarks>
-        public void VideoWriterRelease()
-        {
-            if (vw != null)
-            {
-                double scale = 1.0;
-                Cv.ConvertScale(background_image, imgR, scale);
-                vw.WriteFrame(imgR);
-                vw.Dispose();
-            }
-            if (writer != null)
-            {
-                writer.Close();
-            }
-        }
-
-        /// <summary>
-        /// 画像を保存します。
-        /// </summary>
-        /// <remarks>
-        /// Set save dir name
-        /// </remarks>
-        public void VideoWriterSetSaveDir(string s)
-        {
-
+            //imgGBR.PutText(str, new CvPoint(6, 14) , font, new Scalar(0, 100, 100));
+            //imgGBR.Circle(new CvPoint((int)(gx+0.5),(int)(gy+0.5)), 15, new Scalar(0, 100, 255));
         }
         #endregion
     }

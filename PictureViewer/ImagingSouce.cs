@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Diagnostics;
 using TIS.Imaging;
+using System.Runtime.InteropServices;
 
 namespace MT3
 {
@@ -51,7 +52,7 @@ namespace MT3
             elapsed_fr1 = sw_fr.ElapsedTicks; // 0.1ms
             CurrentBuffer = icImagingControl1.ImageBuffers[e.bufferIndex];
             CurrentBuffer.Lock();
-            CopyMemory(imgdata.img.ImageDataOrigin, CurrentBuffer.GetImageDataPtr(), imgdata.img.ImageSize);
+            CopyMemory(imgdata.img.Data, CurrentBuffer.GetImageDataPtr(), (int)imgdata.img.Total());
             CurrentBuffer.Unlock();
 
             //検知処理

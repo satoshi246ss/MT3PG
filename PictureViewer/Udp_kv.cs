@@ -43,13 +43,13 @@ namespace MT3
         public double vaz1_kv, valt1_kv, az1_c, alt1_c;
         public string binStr_status, binStr_request;
 
-        CvKalman kv_kalman = Cv.CreateKalman(4, 2);
+        KalmanFilter kv_kalman = new KalmanFilter(4, 2); //  Cv.CreateKalman(4, 2);
         int kalman_id = 0;
         public double kvaz, kvalt;
         // 観測値(kalman)
-        CvMat measurement = new CvMat(2, 1, MatrixType.F32C1);
-        CvMat correction;
-        CvMat prediction;
+        Mat measurement = new Mat(2, 1, MatType.CV_32FC1);// .F32C1);
+        Mat correction;
+        Mat prediction;
 
         public int mt3state_move = 0;//     = (G_kv_status  & (1<<12)); //導入中フラグ
         public int mt3state_truck = 0;//     = (G_kv_status  & (1<<13)); //追尾中フラグ
@@ -430,15 +430,16 @@ namespace MT3
         /// <param name="elem">読み出した要素</param> 
         public void kalman_init()
         {
-            CvKalman kalman = kv_kalman;
+            //CvKalman kalman = kv_kalman;
+            KalmanFilter kalman = kv_kalman;
             // 初期化(kalman)
             kalman_id = 0;
-            Cv.SetIdentity(kalman.MeasurementMatrix, Cv.RealScalar(1.0));
-            Cv.SetIdentity(kalman.ProcessNoiseCov, Cv.RealScalar(1e-4));
-            Cv.SetIdentity(kalman.MeasurementNoiseCov, Cv.RealScalar(0.001));
-            Cv.SetIdentity(kalman.ErrorCovPost, Cv.RealScalar(1.0));
+            Cv2.SetIdentity(kalman.MeasurementMatrix,   new Scalar(1.0));
+            Cv2.SetIdentity(kalman.ProcessNoiseCov,     new Scalar(1e-4));
+            Cv2.SetIdentity(kalman.MeasurementNoiseCov, new Scalar(0.001));
+            Cv2.SetIdentity(kalman.ErrorCovPost,        new Scalar(1.0));
 
-            measurement.Zero();
+            measurement = Mat.Zeros(2, 1, MatType.CV_32FC1);
 
             // 等速直線運動モデル(kalman)
             /* unsafe
@@ -448,25 +449,25 @@ namespace MT3
                 kalman.DynamMatr[8] = 0.0f; kalman.DynamMatr[9] = 0.0f; kalman.DynamMatr[10] = 1.0f; kalman.DynamMatr[11] = 0.0f;
                 kalman.DynamMatr[12] = 0.0f; kalman.DynamMatr[13] = 0.0f; kalman.DynamMatr[14] = 0.0f; kalman.DynamMatr[15] = 1.0f;
             }*/
-            kalman.TransitionMatrix.Set2D(0, 0, 1.0f);
-            kalman.TransitionMatrix.Set2D(0, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(0, 2, 1.0f);
-            kalman.TransitionMatrix.Set2D(0, 3, 0.0f);
+            kalman.TransitionMatrix.Set(0, 0, 1.0f);
+            kalman.TransitionMatrix.Set(0, 1, 0.0f);
+            kalman.TransitionMatrix.Set(0, 2, 1.0f);
+            kalman.TransitionMatrix.Set(0, 3, 0.0f);
 
-            kalman.TransitionMatrix.Set2D(1, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(1, 1, 1.0f);
-            kalman.TransitionMatrix.Set2D(1, 2, 0.0f);
-            kalman.TransitionMatrix.Set2D(1, 3, 1.0f);
+            kalman.TransitionMatrix.Set(1, 0, 0.0f);
+            kalman.TransitionMatrix.Set(1, 1, 1.0f);
+            kalman.TransitionMatrix.Set(1, 2, 0.0f);
+            kalman.TransitionMatrix.Set(1, 3, 1.0f);
 
-            kalman.TransitionMatrix.Set2D(2, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(2, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(2, 2, 1.0f);
-            kalman.TransitionMatrix.Set2D(2, 3, 0.0f);
+            kalman.TransitionMatrix.Set(2, 0, 0.0f);
+            kalman.TransitionMatrix.Set(2, 1, 0.0f);
+            kalman.TransitionMatrix.Set(2, 2, 1.0f);
+            kalman.TransitionMatrix.Set(2, 3, 0.0f);
 
-            kalman.TransitionMatrix.Set2D(3, 0, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 1, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 2, 0.0f);
-            kalman.TransitionMatrix.Set2D(3, 3, 1.0f);
+            kalman.TransitionMatrix.Set(3, 0, 0.0f);
+            kalman.TransitionMatrix.Set(3, 1, 0.0f);
+            kalman.TransitionMatrix.Set(3, 2, 0.0f);
+            kalman.TransitionMatrix.Set(3, 3, 1.0f);
         }
         /// <summary>
         /// kalman 初期化ルーチン
@@ -479,33 +480,37 @@ namespace MT3
                 kalman_init();
                 // 初期値設定
                 double errcov = 1.0; //仮
-                kv_kalman.StatePost.Set1D(0, (float)az2_c);
-                kv_kalman.StatePost.Set1D(1, (float)alt2_c);
-                Cv.SetIdentity(kv_kalman.ErrorCovPost, Cv.RealScalar(errcov));
+                kv_kalman.StatePost.Set(0, (float)az2_c);
+                kv_kalman.StatePost.Set(1, (float)alt2_c);
+                Cv2.SetIdentity(kv_kalman.ErrorCovPost, new Scalar(errcov));
             }
             kalman_id++;
 
             // 観測値(kalman)
             //float[] m = { (float)(az2_c), (float)(alt2_c) };
             //measurement = Cv.Mat(2, 1, MatrixType.F32C1, m);
-            measurement.Set2D(0, 0, (float)az2_c);
-            measurement.Set2D(1, 0, (float)alt2_c);
+            measurement.Set(0, 0, (float)az2_c);
+            measurement.Set(1, 0, (float)alt2_c);
 
             // 観測誤差評価　FWHM=2.35σ
             double fwhm_az = 0.005 * vaz2_kv / 2.0;
             double fwhm_alt = 0.005 * valt2_kv / 2.0;
             double sigma_az = (fwhm_az / 2.35);
             double sigma_alt = (fwhm_alt / 2.35);
-            kv_kalman.MeasurementNoiseCov.Set2D(0, 0, sigma_az * sigma_az);
-            kv_kalman.MeasurementNoiseCov.Set2D(1, 1, sigma_alt * sigma_alt);
+            kv_kalman.MeasurementNoiseCov.Set(0, 0, sigma_az * sigma_az);
+            kv_kalman.MeasurementNoiseCov.Set(1, 1, sigma_alt * sigma_alt);
             //Cv.SetIdentity(kv_kalman.MeasurementNoiseCov, Cv.RealScalar(0.001));
 
             // 修正フェーズ(kalman)
-            correction = Cv.KalmanCorrect(kv_kalman, measurement);
+            //correction = Cv.KalmanCorrect(kv_kalman, measurement);
+            kv_kalman.Correct( measurement );
             // 予測フェーズ(kalman)
-            prediction = Cv.KalmanPredict(kv_kalman);
-            kvaz = prediction.DataArraySingle[0]; //ans
-            kvalt = prediction.DataArraySingle[1]; //ans
+            //prediction = Cv.KalmanPredict(kv_kalman);
+            prediction = kv_kalman.Predict(); // Correct prediction = Cv.KalmanPredict(kv_kalman);
+            //kvaz = prediction.DataArraySingle[0]; //ans
+            //kvalt = prediction.DataArraySingle[1]; //ans
+            kvaz  = prediction.Get<double>(0); // DataArraySingle[0]; //ans
+            kvalt = prediction.Get<double>(1); // DataArraySingle[1]; //ans
             //kvx = prediction.DataArraySingle[2];
             //kvy = prediction.DataArraySingle[3];
 
@@ -538,44 +543,45 @@ namespace MT3
                 cxmm = +cx * ccdpx; // +ccd +az
                 cymm = -cy * ccdpy; // +ccd -alt
             }
-            CvMat v1 = new CvMat(3, 1, MatrixType.F64C1);
-            v1.Set2D(0, 0, fl);
-            v1.Set2D(1, 0,-cxmm);
-            v1.Set2D(2, 0, cymm);
-            v1.Normalize(v1);// 方向余弦化
+            Mat v1 = new Mat(3, 1, MatType.CV_64FC1);// MatrixType.F64C1);
+            v1.Set(0, 0, fl);
+            v1.Set(1, 0,-cxmm);
+            v1.Set(2, 0, cymm);
+            //v1.Normalize(v1);// 方向余弦化
+            v1 = v1.Normalize();// 方向余弦化
 
-            CvMat v2 = new CvMat(3, 1, MatrixType.F64C1);
-            CvMat Rx = new CvMat(3, 3, MatrixType.F64C1);
-            CvMat Rz = new CvMat(3, 3, MatrixType.F64C1);
-            CvMat Ry = new CvMat(3, 3, MatrixType.F64C1);
+            Mat v2 = new Mat(3, 1, MatType.CV_64FC1);
+            Mat Rx = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
+            Mat Rz = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
+            Mat Ry = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
 
             //Rx.rotX(-theta_c * rad); // 回転マトリクスをセット
             double sin = Math.Sin(-theta_c * rad);
             double cos = Math.Cos(-theta_c * rad);
-            Rx.Set2D(0, 0, 1); Rx.Set2D(0, 1, 0); Rx.Set2D(0, 2, 0);
-            Rx.Set2D(1, 0, 0); Rx.Set2D(1, 1, cos); Rx.Set2D(1, 2, -sin);
-            Rx.Set2D(2, 0, 0); Rx.Set2D(2, 1, sin); Rx.Set2D(2, 2, cos);
+            Rx.Set(0, 0, 1.0); Rx.Set(0, 1, 0.0); Rx.Set(0, 2,  0.0);
+            Rx.Set(1, 0, 0.0); Rx.Set(1, 1, cos); Rx.Set(1, 2, -sin);
+            Rx.Set(2, 0, 0.0); Rx.Set(2, 1, sin); Rx.Set(2, 2,  cos);
 
 
             //Rz.rotZ(-az_c   *rad ); // 天球座標系と回転方向が逆なのでマイナス
             sin = Math.Sin(-az_c * rad);
             cos = Math.Cos(-az_c * rad);
-            Rz.Set2D(0, 0, cos); Rz.Set2D(0, 1, -sin); Rz.Set2D(0, 2, 0);
-            Rz.Set2D(1, 0, sin); Rz.Set2D(1, 1, cos); Rz.Set2D(1, 2, 0);
-            Rz.Set2D(2, 0, 0); Rz.Set2D(2, 1, 0); Rz.Set2D(2, 2, 1);
+            Rz.Set(0, 0, cos); Rz.Set(0, 1, -sin); Rz.Set(0, 2, 0.0);
+            Rz.Set(1, 0, sin); Rz.Set(1, 1,  cos); Rz.Set(1, 2, 0.0);
+            Rz.Set(2, 0, 0.0); Rz.Set(2, 1,  0.0); Rz.Set(2, 2, 1.0);
 
             //Ry.rotY(-alt_c  *rad ); // 回転マトリクスをセット
             sin = Math.Sin(-alt_c * rad);
             cos = Math.Cos(-alt_c * rad);
-            Ry.Set2D(0, 0, cos); Ry.Set2D(0, 1, 0); Ry.Set2D(0, 2, sin);
-            Ry.Set2D(1, 0, 0); Ry.Set2D(1, 1, 1); Ry.Set2D(1, 2, 0);
-            Ry.Set2D(2, 0, -sin); Ry.Set2D(2, 1, 0); Ry.Set2D(2, 2, cos);
+            Ry.Set(0, 0,  cos); Ry.Set(0, 1, 0.0); Ry.Set(0, 2, sin);
+            Ry.Set(1, 0,  0.0); Ry.Set(1, 1, 1.0); Ry.Set(1, 2, 0.0);
+            Ry.Set(2, 0, -sin); Ry.Set(2, 1, 0.0); Ry.Set(2, 2, cos);
             v2 = Rz * (Ry * (Rx * v1)); // 順番注意（画像中心をx軸に一致させている状態がスタート）
 
             // Retrun Val
-            az = Math.Atan2(-v2.Get2D(1, 0), v2.Get2D(0, 0)) / rad;
+            az = Math.Atan2(-v2.Get<double>(1, 0), v2.Get<double>(0, 0)) / rad;
             if (az < 0) az += 360;
-            alt = Math.Asin(v2.Get2D(2, 0)) / rad;
+            alt = Math.Asin(v2.Get<double>(2, 0)) / rad;
 
         //    //Az_Cとの距離が近い値を採用
         //    double az2 = az - 360;
@@ -613,44 +619,44 @@ namespace MT3
                 cxmm = +cx * ccdpx; // +ccd +az
                 cymm = -cy * ccdpy; // +ccd -alt
             }
-            CvMat v1 = new CvMat(3, 1, MatrixType.F64C1);
-            v1.Set2D(0, 0, fl);
-            v1.Set2D(1, 0, -cxmm);
-            v1.Set2D(2, 0, cymm);
-            v1.Normalize(v1);// 方向余弦化
+            Mat v1 = new Mat(3, 1, MatType.CV_64FC1);// MatrixType.F64C1);
+            v1.Set(0, 0, fl);
+            v1.Set(1, 0, -cxmm);
+            v1.Set(2, 0, cymm);
+            v1 = v1.Normalize();// 方向余弦化
 
-            CvMat v2 = new CvMat(3, 1, MatrixType.F64C1);
-            CvMat Rx = new CvMat(3, 3, MatrixType.F64C1);
-            CvMat Rz = new CvMat(3, 3, MatrixType.F64C1);
-            CvMat Ry = new CvMat(3, 3, MatrixType.F64C1);
+            Mat v2 = new Mat(3, 1, MatType.CV_64FC1);// MatrixType.F64C1);
+            Mat Rx = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
+            Mat Rz = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
+            Mat Ry = new Mat(3, 3, MatType.CV_64FC1);// MatrixType.F64C1);
 
             //Rx.rotX(theta_c * rad); // 回転マトリクスをセット
             double sin = Math.Sin((-90+theta_c) * rad);
             double cos = Math.Cos((-90+theta_c) * rad);
-            Rx.Set2D(0, 0, 1); Rx.Set2D(0, 1, 0); Rx.Set2D(0, 2, 0);
-            Rx.Set2D(1, 0, 0); Rx.Set2D(1, 1, cos); Rx.Set2D(1, 2, -sin);
-            Rx.Set2D(2, 0, 0); Rx.Set2D(2, 1, sin); Rx.Set2D(2, 2, cos);
+            Rx.Set(0, 0, 1.0); Rx.Set(0, 1, 0.0); Rx.Set(0, 2,  0.0);
+            Rx.Set(1, 0, 0.0); Rx.Set(1, 1, cos); Rx.Set(1, 2, -sin);
+            Rx.Set(2, 0, 0.0); Rx.Set(2, 1, sin); Rx.Set(2, 2,  cos);
 
 
             //Rz.rotZ(-az_c   *rad ); // 天球座標系と回転方向が逆なのでマイナス
             sin = Math.Sin(-az_c * rad);
             cos = Math.Cos(-az_c * rad);
-            Rz.Set2D(0, 0, cos); Rz.Set2D(0, 1, -sin); Rz.Set2D(0, 2, 0);
-            Rz.Set2D(1, 0, sin); Rz.Set2D(1, 1, cos); Rz.Set2D(1, 2, 0);
-            Rz.Set2D(2, 0, 0); Rz.Set2D(2, 1, 0); Rz.Set2D(2, 2, 1);
+            Rz.Set(0, 0, cos); Rz.Set(0, 1, -sin); Rz.Set(0, 2, 0.0);
+            Rz.Set(1, 0, sin); Rz.Set(1, 1,  cos); Rz.Set(1, 2, 0.0);
+            Rz.Set(2, 0, 0.0); Rz.Set(2, 1,  0.0); Rz.Set(2, 2, 1.0);
 
             //Ry.rotY(-alt_c  *rad ); // 回転マトリクスをセット
             sin = Math.Sin(-alt_c * rad);
             cos = Math.Cos(-alt_c * rad);
-            Ry.Set2D(0, 0, cos); Ry.Set2D(0, 1, 0); Ry.Set2D(0, 2, sin);
-            Ry.Set2D(1, 0, 0); Ry.Set2D(1, 1, 1); Ry.Set2D(1, 2, 0);
-            Ry.Set2D(2, 0, -sin); Ry.Set2D(2, 1, 0); Ry.Set2D(2, 2, cos);
+            Ry.Set(0, 0,  cos); Ry.Set(0, 1, 0.0); Ry.Set(0, 2, sin);
+            Ry.Set(1, 0,  0.0); Ry.Set(1, 1, 1.0); Ry.Set(1, 2, 0.0);
+            Ry.Set(2, 0, -sin); Ry.Set(2, 1, 0.0); Ry.Set(2, 2, cos);
             v2 = Rz * (Ry * (Rx * v1)); // 順番注意（画像中心をx軸に一致させている状態がスタート）
 
             // Retrun Val
-            az = Math.Atan2(-v2.Get2D(1, 0), v2.Get2D(0, 0)) / rad;
+            az = Math.Atan2(-v2.Get<double>(1, 0), v2.Get<double>(0, 0)) / rad;
             if (az < 0) az += 360;
-            alt = Math.Asin(v2.Get2D(2, 0)) / rad;
+            alt = Math.Asin(v2.Get<double>(2, 0)) / rad;
 
             //    //Az_Cとの距離が近い値を採用
             //    double az2 = az - 360;

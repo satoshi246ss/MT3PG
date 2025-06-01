@@ -9,10 +9,12 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using OpenCvSharp.Blob;
+//  using OpenCvSharp.Blob;
 using PylonC.NETSupportLibrary;
 using uEye;
 using MtLibrary;
+using System.Drawing;
+using static OpenCvSharp.ConnectedComponents;
 
 namespace MT3
 {
@@ -78,24 +80,24 @@ namespace MT3
         Camera_Color cam_color = Camera_Color.mono;
 
         //状態を表す定数
-        const int TRUE = 0;
+        const int TRUE  = 0;
         const int FALSE = 1;
         //上の2つ状態を保持します
         int ImgSaveFlag = FALSE;
 
         //カメラの状態を表す定数
         const int STOP = 0;
-        const int RUN = 1;
+        const int RUN  = 1;
         const int SAVE = 2;
         //上の状態を保持します
         int States = 0;
 
-        //状態を表す定数
-        const int LOST = 0;
-        const int DETECT = 1;
+        //流星検知状態を表す定数
+        const int LOST      = 0;
+        const int DETECT    = 1;
         const int DETECT_IN = 2;
-        const int PID_TEST = 3;
-        //上の2つ状態を保持します
+        const int PID_TEST  = 3;
+        //上の状態を保持します
         int Mode = LOST;
 
         // 時刻基準（BCB互換）
@@ -130,7 +132,7 @@ namespace MT3
         public double theta_c = 0 ;
         public double dx, dy ;
         public double az0, alt0, vaz0, valt0; // 流星位置、速度（前フレームの値）
-        public double az,  alt,  vaz,  valt; // 流星位置、速度
+        public double az,  alt,  vaz,  valt;  // 流星位置、速度
         public double az1, alt1, vaz1, valt1; // 流星位置、速度（次フレームの値）
         public double daz, dalt, dvaz, dvalt; // 流星位置差、速度差（前フレームからの）
         position_mesure pos_mes = new position_mesure();
@@ -140,11 +142,14 @@ namespace MT3
         int id_mon = 0;
         DateTime LiveStartTime;
         //long timestamp; // [us]
-        long frame_timestamp; //[us]
-        double dFramerate = 0; // Frame rate[fr/s]
+        long frame_timestamp;    //[us]
+        double dFramerate = 0;   // Frame rate[fr/s]
         double reqFramerate = 0; // 要求Frame rate[fr/s]
         double dExpo = 0; // Exposure[us]
-        long igain = 0; //Gain
+        long igain = 0;   //Gain
+
+        //表示用
+        long frame_dropped = 0, frame_overflow = 0, frame_failure = 0;
 
         ImageData imgdata = new ImageData(640,480); //struck 初期化ダミー
         CircularBuffer fifo = new CircularBuffer();
@@ -163,26 +168,32 @@ namespace MT3
         double set_exposure  = 3;   // [ms]            F1.8:F4  exp 8ms:3ms  gain 1024: 100  約106倍
         double set_exposure1 = 0.2; // [ms]
  
-        IplImage img_dmk3, img_dmk, img2, imgLabel , imgAvg;
-        CvBlobs blobs = new CvBlobs();
-        CvFont font = new CvFont(FontFace.HersheyComplex, 0.50, 0.50);
-        CvFont font_big = new CvFont(FontFace.HersheyComplex, 1.0, 1.0);
+        Mat img_dmk3, img_dmk, img2, imgLabel , imgAvg;
+        
+        //CvBlobs blobs = new CvBlobs();
+        KeyPoint[] blobs ;
+
+        //Font fnt = new Font("MS UI Gothic", 20);
+        //Cv2.PutText(img, "English!!", new OpenCvSharp.Point(10, 180), HersheyFonts.HersheyComplexSmall, 1, new Scalar(255, 0, 255), 1, LineTypes.AntiAlias);
+        //Font font = new Font(FontFace.HersheyComplex, 0.50, 0.50);
+        //Font font_big = new Font(FontFace.HersheyComplex, 1.0, 1.0);
 
         double gx, gy, max_val, kgx, kgy, kvx, kvy, sgx, sgy;
-        CvPoint2D64f max_centroid;
+        Point2f max_centroid;
         int max_label;
-        CvBlob maxBlob;
-        CvRect blob_rect;
-        CvKalman kalman = Cv.CreateKalman(4, 2);
+        //CvBlob maxBlob;
+        KeyPoint maxBlob;
+        Rect blob_rect;
+        KalmanFilter kalman = new KalmanFilter(4, 2);
         int kalman_id = 0;
         // 観測値(kalman)
-        CvMat measurement = new CvMat(2, 1, MatrixType.F32C1);
-        CvMat correction;
-        CvMat prediction;
+        Mat measurement = new Mat(2, 1, MatType.CV_32FC1); // .F32C1);
+        Mat correction;
+        Mat prediction;
 
         // 位置補正データ
-        CvMat grid_az = new CvMat(360, 90, MatrixType.F64C1);
-        CvMat grid_alt = new CvMat(360, 90, MatrixType.F64C1);
+        Mat grid_az  = new Mat(360, 90, MatType.CV_64FC1);
+        Mat grid_alt = new Mat(360, 90, MatType.CV_64FC1);
         //frame rate 用
         Stopwatch sw_fr = new Stopwatch();
         long elapsed_fr0 = 0, elapsed_fr1 = 0;
@@ -194,6 +205,7 @@ namespace MT3
         double lap21=0, lap22, lap0 = 0, lap1 = 0, lap2 = 0, alpha = 0.001;
         string fr_str;
         private BackgroundWorker worker;
+        private BackgroundWorker pgr_worker;
         private BackgroundWorker worker_udp;
         Udp_kv udpkv = new Udp_kv();
         long udp_packet_id = 0;
@@ -226,7 +238,7 @@ namespace MT3
 
         #endregion
 
-        public void IplImageInit()
+        public void MatInit()
         {
             int wi = appSettings.Width;
             if (appSettings.CameraColor == Camera_Color.mono12packed)
@@ -234,13 +246,14 @@ namespace MT3
                 wi = appSettings.Width + (appSettings.Width / 2 ); 
             }
                 
-            img_dmk3 = new IplImage(wi, appSettings.Height, BitDepth.U8, 3);
-            img_dmk  = new IplImage(wi, appSettings.Height, BitDepth.U8, 1);
-            // IplImage img_dark8 = Cv.LoadImage(@"C:\Users\Public\piccolo\dark00.bmp", LoadMode.GrayScale);
-            img2     = new IplImage(wi, appSettings.Height, BitDepth.U8, 1);
-            imgLabel = new IplImage(wi, appSettings.Height, CvBlobLib.DepthLabel, 1);
+            img_dmk3 = new Mat(wi, appSettings.Height, MatType.CV_8UC3); // color
+            img_dmk  = new Mat(wi, appSettings.Height, MatType.CV_8UC1); // mono
+            // Mat img_dark8 = Cv.LoadImage(@"C:\Users\Public\piccolo\dark00.bmp", LoadMode.GrayScale);
+            img2     = new Mat(wi, appSettings.Height, MatType.CV_8UC1);
+            //imgLabel = new Mat(wi, appSettings.Height, CvBlobLib.DepthLabel, 1);
+            imgLabel = new Mat(wi, appSettings.Height, MatType.CV_8UC3);
             
-            imgAvg   = new IplImage(wi, appSettings.Height, BitDepth.F32, 1);
+            imgAvg   = new Mat(wi, appSettings.Height, MatType.CV_32FC1);
 
             imgdata.init(wi, appSettings.Height);
             // FIFO init
@@ -320,11 +333,11 @@ namespace MT3
             sett.Exposure = 13; //[ms]
             sett.Gain = 100;
             sett.UseDetect = true;
-            sett.ThresholdBlob = 128;     // 検出閾値（０－２５５）
+            sett.ThresholdBlob = 128;    // 検出閾値（０－２５５）
             sett.ThresholdMinArea = 0.25;// 最小エリア閾値（最大値ｘ_threshold_min_area)
             sett.UdpPortRecieve = 24410;
             sett.UdpPortSend    = 24429;
-            sett.SaveDir = @"C:\Users\Public\img_data\";
+            sett.SaveDir   = @"C:\Users\Public\img_data\";
             sett.SaveDrive = "C:";
             sett.AviMaxFrame = 6000;
             SettingsSave(sett);
@@ -934,16 +947,17 @@ namespace MT3
                     //imgdata_push_FIFO(frame.Buffer);
                     
                     //img_dmk は使わず、直接imgdata.imgにコピー (0.3ms)
-                    System.Runtime.InteropServices.Marshal.Copy(frame.Buffer, 0, imgdata.img.ImageDataOrigin, frame.Buffer.Length);
+                   // System.Runtime.InteropServices.Marshal.Copy(frame.Buffer, 0, imgdata.img.ImageDataOrigin, frame.Buffer.Length);
+                    System.Runtime.InteropServices.Marshal.Copy(frame.Buffer, 0, imgdata.img.Data, frame.Buffer.Length);
 
                     // unsafeバージョン(0.2-0.3ms)
-                  //  unsafe
-                  //  {
-                  //      fixed (byte* pbytes = frame.Buffer)
-                  //      {
-                  //          CopyMemory(imgdata.img.ImageDataPtr, pbytes, frame.Buffer.Length);
-                  //      }
-                  //  }
+                    //  unsafe
+                    //  {
+                    //      fixed (byte* pbytes = frame.Buffer)
+                    //      {
+                    //          CopyMemory(imgdata.img.ImageDataPtr, pbytes, frame.Buffer.Length);
+                    //      }
+                    //  }
                 }
             }
             catch (AVT.VmbAPINET.VimbaException ve)
@@ -1220,7 +1234,7 @@ namespace MT3
         {
             // 文字入れ
             //String str = String.Format("ID:{0,6:D1} ", imgdata.id) + imgdata.t.ToString("yyyyMMdd_HHmmss_fff") + String.Format(" ({0,6:F1},{1,6:F1})({2,6:F1})", gx, gy, max_val);
-            //img_dmk.PutText(str, new CvPoint(10, 460), font, new CvColor(255, 100, 100));
+            //img_dmk.PutText(str, new CvPoint(10, 460), font, new Scalar(255, 100, 100));
 
             //try
             //{
@@ -1458,8 +1472,8 @@ namespace MT3
                 }
                 star_azalt.RemoveAt(ii);
 
-                double daz_grid = (double)numericUpDown_daz.Value / 10.0 - grid_az.Get2D((int)az_t, (int)alt_t);
-                double dalt_grid = (double)numericUpDown_dalt.Value / 10.0 - grid_alt.Get2D((int)az_t, (int)alt_t);
+                double daz_grid = (double)numericUpDown_daz.Value / 10.0 - grid_az.Get<double>((int)az_t, (int)alt_t);
+                double dalt_grid = (double)numericUpDown_dalt.Value / 10.0 - grid_alt.Get<double>((int)az_t, (int)alt_t);
 
                 // KV1000通信  MT2,3 move
                 if (appSettings.ID == 10) // MT2 WideCam 設定
@@ -1520,7 +1534,7 @@ namespace MT3
                         foreach (string s in stArrayData)
                         {
                             double data = double.Parse(s);
-                            grid_az.Set2D(j, i, data);
+                            grid_az.Set(j, i, data);
                             i++;
                         }
                         j++;
@@ -1539,7 +1553,7 @@ namespace MT3
                         foreach (string s in stArrayData)
                         {
                             double data = double.Parse(s);
-                            grid_alt.Set2D(j, i, data);
+                            grid_alt.Set(j, i, data);
                             i++;
                         }
                         j++;
