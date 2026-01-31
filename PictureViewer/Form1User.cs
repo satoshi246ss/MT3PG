@@ -59,6 +59,16 @@ namespace MT3
         Global,
         Rolling
     }
+    internal static class AssemblyState
+    {
+        public const bool IsDebug =
+#if DEBUG
+   true;
+#else
+   false;
+#endif
+    }
+    //if(AssemblyState.IsDebug) { /* Debugビルド時の処理 */ }
 
     public class StarAzAlt
     {
@@ -563,7 +573,7 @@ namespace MT3
             sett.UdpPortSend = 24432;
             sett.SaveDir = @"E:\img_data\";
             sett.SaveDrive = "E:";
-            sett.AviMaxFrame = 3200;
+            sett.AviMaxFrame = 3200; //1920x1200x8bitx160fps 約3.7GB/分 2GB=約30秒 30x160=4800fr 3200/160=20秒
             SettingsSave(sett);
 
             // MT3Fine ImagingSouce

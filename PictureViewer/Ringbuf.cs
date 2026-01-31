@@ -565,7 +565,7 @@ namespace MT3
         /// </remarks>
         public void VideoWriterInit(string fn)
         {
-            int select_vw = 2; // 1:OpenCvSharp  2:AForge
+            int select_vw = 1; // 1:OpenCvSharp  2:AForge
             if (select_vw == 1)
             {
                 //int codec = Cv.FOURCC('D', 'I', 'B', ' ');  // 0; //非圧縮avi
@@ -616,36 +616,44 @@ namespace MT3
             }
             if (save_frame_count++ > save_frame_count_max)
             {
-                save_frame_count = 0;
+                //save_frame_count = 0;
                 VideoWriterRelease();
 
-                string fn = FileName + "_" + (++avi_id).ToString() + ".avi";
-                VideoWriterInit(fn);
+                //string fn = FileName + "_" + (++avi_id).ToString() + ".avi";
+                //VideoWriterInit(fn);
+                return;
             }
 
-            MakeWriteFrameData();
+            //MakeWriteFrameData();
 
-            vw.Write(imgR);
-            writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
-            int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf ThreadID : " + id);
+            vw.Write(img[this.bottom]);// imgR);
+            if (AssemblyState.IsDebug)
+            { /* Debugビルド時の処理 */
+                writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
+                int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf ThreadID : " + id);
+            }
         }
         public void AviVideoWriterFrame()
         {
             //if (vw == null || vw.IsDisposed || writer == null) return;
             if (save_frame_count++ > save_frame_count_max)
             {
-                save_frame_count = 0;
+                //save_frame_count = 0;
                 aviwriter.Close();// VideoWriterRelease();
 
-                string fn = FileName + "_" + (++avi_id).ToString() + ".avi";
-                VideoWriterInit(fn);
+                //string fn = FileName + "_" + (++avi_id).ToString() + ".avi";
+                //VideoWriterInit(fn);
+                return;
             }
 
             MakeWriteFrameData();
 
             aviwriter.AddFrame(BitmapConverter.ToBitmap(imgR));// vw.Write(imgR);
-            writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
-            int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf Avi ThreadID : " + id);
+            if (AssemblyState.IsDebug)
+            { /* Debugビルド時の処理 */
+                writer.WriteLine("{0} {1} {2}  ", vd.id, vd.kgx, vd.kgy);
+                int id = System.Threading.Thread.CurrentThread.ManagedThreadId; Console.WriteLine("RingBuf Avi ThreadID : " + id);
+            }
         }
 
         /// <summary>

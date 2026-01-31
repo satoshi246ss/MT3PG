@@ -250,8 +250,8 @@ namespace MT3
                     {
                         // 保存時間延長
                         //timerSavePostTime.Stop();
-                        timerSavePost.Stop();
-                        timerSavePost.Start();
+                //        timerSavePost.Stop();
+                //        timerSavePost.Start();
                     }
                 }
 
